@@ -1,0 +1,9 @@
+target
+.lake
+.cargo
+auth.json
+settings.json
+__pycache__/
+*.pyc
+.github
+Cargo.lock

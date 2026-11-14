@@ -1,0 +1,1097 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radio admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-neutral-50 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100">
+
+<!-- ---------------------------------------------------------------- login -->
+<div id="login-view" class="hidden min-h-screen place-items-center px-6 py-12">
+  <div class="w-full max-w-sm">
+    <a href="/" class="text-sm text-neutral-500 hover:underline">&larr; Back to player</a>
+
+    <div class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <h1 class="text-xl font-semibold">Admin</h1>
+      <p class="mt-1 text-xs text-neutral-500">The first login creates the only account.</p>
+
+      <form id="login-form" class="mt-6 space-y-4" autocomplete="on">
+        <label class="block text-sm">
+          <span class="text-neutral-600 dark:text-neutral-300">Username</span>
+          <input id="username" type="text" required maxlength="64" autocomplete="username"
+            class="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700">
+        </label>
+        <label class="block text-sm">
+          <span class="text-neutral-600 dark:text-neutral-300">Password</span>
+          <input id="password" type="password" required maxlength="1024" autocomplete="current-password"
+            class="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700">
+        </label>
+        <p id="login-error" class="min-h-[1.25rem] text-xs text-red-600 dark:text-red-400"></p>
+        <button id="login-submit" type="submit"
+          class="w-full rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300">
+          Log in
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------------ app -->
+<div id="app-view" class="hidden min-h-screen flex-col lg:flex-row">
+
+  <aside id="sidebar" class="border-b border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900 lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r lg:min-h-screen">
+    <div class="flex items-center justify-between">
+      <a href="/" class="text-sm font-semibold hover:underline">Radio</a>
+      <span class="text-[10px] uppercase tracking-wider text-neutral-400">admin</span>
+    </div>
+
+    <nav class="mt-4 flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+      <a href="/admin" data-nav="overview"
+        class="rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800">Overview</a>
+      <a href="/admin/files" data-nav="files"
+        class="rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800">Files</a>
+      <a href="/admin/queue" data-nav="queue"
+        class="rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800">Queue</a>
+      <a href="/admin/listeners" data-nav="listeners"
+        class="rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800">Listeners</a>
+      <a href="/admin/settings" data-nav="settings"
+        class="rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800">Settings</a>
+    </nav>
+
+    <div class="mt-4 border-t border-neutral-200 pt-4 dark:border-neutral-800 lg:mt-auto">
+      <p id="admin-user" class="truncate text-xs text-neutral-500"></p>
+      <button id="logout" type="button"
+        class="mt-2 w-full rounded-lg border border-neutral-300 px-3 py-1.5 text-xs hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800">
+        Log out
+      </button>
+    </div>
+  </aside>
+
+  <div class="min-w-0 flex-1">
+    <header class="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 bg-white px-4 py-4 dark:border-neutral-800 dark:bg-neutral-900 sm:px-6">
+      <div>
+        <h1 id="page-title" class="text-lg font-semibold">Overview</h1>
+        <p id="page-subtitle" class="text-xs text-neutral-500"></p>
+      </div>
+      <div class="flex flex-wrap items-center gap-4 text-xs text-neutral-500">
+        <span class="flex min-w-0 items-center gap-2">
+          <span id="live-dot" class="h-2 w-2 shrink-0 rounded-full bg-emerald-500"></span>
+          <span id="live-now" class="max-w-[16rem] truncate">Nothing playing</span>
+        </span>
+        <span id="live-listeners" class="shrink-0">0 listeners</span>
+      </div>
+    </header>
+
+    <main class="p-4 sm:p-6">
+
+      <!-- overview -->
+      <section id="view-overview" class="hidden space-y-6">
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div class="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+            <p class="text-[10px] uppercase tracking-wider text-neutral-500">Now playing</p>
+            <p id="ov-now" class="mt-2 truncate text-lg font-semibold">&mdash;</p>
+            <p id="ov-artist" class="truncate text-xs text-neutral-500"></p>
+          </div>
+          <div class="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+            <p class="text-[10px] uppercase tracking-wider text-neutral-500">Listeners</p>
+            <p id="ov-listeners" class="mt-2 text-2xl font-semibold">0</p>
+          </div>
+          <div class="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+            <p class="text-[10px] uppercase tracking-wider text-neutral-500">Upcoming</p>
+            <p id="ov-queue" class="mt-2 text-2xl font-semibold">0</p>
+            <a href="/admin/queue" class="mt-1 inline-block text-xs text-neutral-500 hover:underline">View queue</a>
+          </div>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+          <div class="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+            <div class="flex items-center justify-between">
+              <h2 class="text-sm font-semibold">Up next</h2>
+              <a href="/admin/queue" class="text-xs text-neutral-500 hover:underline">View all</a>
+            </div>
+            <div class="mt-3 max-h-80 overflow-y-auto">
+              <ul id="ov-queue-list" class="divide-y divide-neutral-200 dark:divide-neutral-800"></ul>
+              <p id="ov-queue-empty" class="py-4 text-center text-sm text-neutral-500">Queue is empty.</p>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+            <h2 class="text-sm font-semibold">Library</h2>
+            <p id="ov-files" class="mt-3 text-2xl font-semibold">0 files</p>
+            <a href="/admin/files" class="mt-1 inline-block text-xs text-neutral-500 hover:underline">Manage files</a>
+            <p class="mt-5 text-xs text-neutral-500">Upload, search, and remove music and jingles from the library.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- files -->
+      <section id="view-files" class="hidden">
+        <div class="rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+          <div class="flex flex-wrap items-end gap-3 border-b border-neutral-200 p-4 dark:border-neutral-800">
+            <label class="min-w-[12rem] flex-1 text-xs">
+              <span class="text-neutral-500">Search</span>
+              <input id="files-search" type="search" maxlength="200" placeholder="Filter by file name or path"
+                class="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700">
+            </label>
+            <label class="text-xs">
+              <span class="text-neutral-500">Kind</span>
+              <select id="files-kind"
+                class="mt-1 block rounded-lg border border-neutral-300 bg-transparent px-2 py-2 text-sm dark:border-neutral-700">
+                <option value="all">All</option>
+                <option value="music">Music</option>
+                <option value="jingle">Jingles</option>
+              </select>
+            </label>
+            <label class="text-xs">
+              <span class="text-neutral-500">Per page</span>
+              <select id="files-per"
+                class="mt-1 block rounded-lg border border-neutral-300 bg-transparent px-2 py-2 text-sm dark:border-neutral-700">
+                <option value="25">25</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+                <option value="200">200</option>
+              </select>
+            </label>
+            <div class="ml-auto flex flex-wrap items-end gap-2">
+              <button id="files-refresh" type="button"
+                class="rounded-lg border border-neutral-300 px-3 py-2 text-xs hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800">Refresh</button>
+              <label class="text-xs">
+                <span class="text-neutral-500">Upload to</span>
+                <select id="upload-target"
+                  class="mt-1 block rounded-lg border border-neutral-300 bg-transparent px-2 py-2 text-sm dark:border-neutral-700">
+                  <option value="music">Music</option>
+                  <option value="jingles">Jingles</option>
+                </select>
+              </label>
+              <label for="upload"
+                class="cursor-pointer rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300">
+                Upload
+              </label>
+              <input id="upload" type="file" class="hidden" accept=".wav,.flac,audio/wav,audio/flac,audio/x-flac">
+            </div>
+          </div>
+
+          <p id="files-msg" class="min-h-[1.25rem] px-4 pt-3 text-xs text-neutral-500"></p>
+
+          <div class="max-h-[55vh] overflow-y-auto">
+            <ul id="files" class="divide-y divide-neutral-200 dark:divide-neutral-800"></ul>
+            <p id="files-empty" class="hidden p-8 text-center text-sm text-neutral-500">No files match.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 p-4 text-xs dark:border-neutral-800">
+            <span id="files-total" class="text-neutral-500">0 files</span>
+            <div class="flex items-center gap-2">
+              <button id="files-prev" type="button"
+                class="rounded-lg border border-neutral-300 px-3 py-1.5 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:hover:bg-neutral-800">Previous</button>
+              <span id="files-page" class="text-neutral-500">Page 1 of 1</span>
+              <button id="files-next" type="button"
+                class="rounded-lg border border-neutral-300 px-3 py-1.5 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:hover:bg-neutral-800">Next</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- queue -->
+      <section id="view-queue" class="hidden">
+        <div class="rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+          <div class="flex flex-wrap items-end gap-3 border-b border-neutral-200 p-4 dark:border-neutral-800">
+            <label class="min-w-[12rem] flex-1 text-xs">
+              <span class="text-neutral-500">Search</span>
+              <input id="queue-search" type="search" maxlength="200" placeholder="Filter by artist, title, or file"
+                class="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700">
+            </label>
+            <label class="text-xs">
+              <span class="text-neutral-500">Per page</span>
+              <select id="queue-per"
+                class="mt-1 block rounded-lg border border-neutral-300 bg-transparent px-2 py-2 text-sm dark:border-neutral-700">
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="200">200</option>
+              </select>
+            </label>
+            <button id="queue-refresh" type="button"
+              class="ml-auto rounded-lg border border-neutral-300 px-3 py-2 text-xs hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800">Refresh</button>
+          </div>
+
+          <div class="max-h-[60vh] overflow-y-auto">
+            <ul id="queue" class="divide-y divide-neutral-200 dark:divide-neutral-800"></ul>
+            <p id="queue-empty" class="hidden p-8 text-center text-sm text-neutral-500">The queue is empty.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 p-4 text-xs dark:border-neutral-800">
+            <span id="queue-total" class="text-neutral-500">0 tracks</span>
+            <div class="flex items-center gap-2">
+              <button id="queue-prev" type="button"
+                class="rounded-lg border border-neutral-300 px-3 py-1.5 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:hover:bg-neutral-800">Previous</button>
+              <span id="queue-page" class="text-neutral-500">Page 1 of 1</span>
+              <button id="queue-next" type="button"
+                class="rounded-lg border border-neutral-300 px-3 py-1.5 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:hover:bg-neutral-800">Next</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- listeners -->
+      <section id="view-listeners" class="hidden">
+        <div class="rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 p-4 dark:border-neutral-800">
+            <div>
+              <h2 class="text-sm font-semibold">Live connections</h2>
+              <p class="text-xs text-neutral-500">Open stream sockets only. Nothing is stored.</p>
+            </div>
+            <span id="listeners-total" class="text-xs text-neutral-500">0 listeners</span>
+          </div>
+
+          <p id="listeners-msg" class="min-h-[1.25rem] px-4 pt-3 text-xs text-neutral-500"></p>
+
+          <div class="max-h-[60vh] overflow-auto">
+            <table class="w-full text-left">
+              <thead class="border-b border-neutral-200 text-[10px] uppercase tracking-wider text-neutral-500 dark:border-neutral-800">
+                <tr>
+                  <th class="px-4 py-2 font-medium">User agent</th>
+                  <th class="px-4 py-2 font-medium">IP address</th>
+                  <th class="px-4 py-2 font-medium">Connected</th>
+                  <th class="px-4 py-2 text-right font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody id="listeners" class="divide-y divide-neutral-200 dark:divide-neutral-800"></tbody>
+            </table>
+            <p id="listeners-empty" class="hidden p-8 text-center text-sm text-neutral-500">No one is listening right now.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- settings -->
+      <section id="view-settings" class="hidden">
+        <div class="max-w-2xl rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
+          <h2 class="text-sm font-semibold">Audio endpoints</h2>
+          <p class="mt-1 text-xs text-neutral-500">Changes apply to new connections. Paths must start with <code>/</code> and may contain only ASCII letters, digits, <code>-._~/</code>.</p>
+
+          <form id="settings-form" class="mt-5 space-y-4">
+            <label class="block text-sm">
+              <span class="text-neutral-600 dark:text-neutral-300">Opus stream path</span>
+              <input id="settings-stream" type="text" required maxlength="200" spellcheck="false" placeholder="/radio.opus"
+                class="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 font-mono text-sm outline-none focus:border-neutral-500 dark:border-neutral-700">
+            </label>
+            <label class="block text-sm">
+              <span class="text-neutral-600 dark:text-neutral-300">HLS playlist path</span>
+              <input id="settings-playlist" type="text" required maxlength="200" spellcheck="false" placeholder="/radio.m3u8"
+                class="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent px-3 py-2 font-mono text-sm outline-none focus:border-neutral-500 dark:border-neutral-700">
+            </label>
+            <label class="flex items-center gap-2 text-sm">
+              <input id="settings-hls" type="checkbox"
+                class="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700">
+              <span class="text-neutral-600 dark:text-neutral-300">Enable HLS</span>
+            </label>
+            <p id="settings-msg" class="min-h-[1.25rem] text-xs text-neutral-500"></p>
+            <button id="settings-save" type="submit"
+              class="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300">
+              Save settings
+            </button>
+          </form>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+const state = {
+  user: null,
+  events: null,
+  route: 'overview',
+  lastNow: null,
+  lastQueueTotal: null,
+  files: { q: '', kind: 'all', page: 1, per: 50, pages: 1, total: 0 },
+  queue: { q: '', page: 1, per: 25, pages: 1, total: 0 },
+  listeners: [],
+  listenerSignature: null,
+  listenerTimer: null,
+  searchTimer: null,
+};
+
+/* ---------------------------------------------------------------- helpers */
+
+async function api(path, options = {}) {
+  const response = await fetch(path, { credentials: 'same-origin', ...options });
+  if (response.status === 401 && state.user) showLogin();
+  return response;
+}
+
+async function errorText(response) {
+  try {
+    const body = await response.json();
+    return body.error || ('HTTP ' + response.status);
+  } catch (_) {
+    return 'HTTP ' + response.status;
+  }
+}
+
+function humanSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+}
+
+function plural(value, one, many) {
+  return value + ' ' + (value === 1 ? one : many);
+}
+
+function debounce(fn, delay) {
+  clearTimeout(state.searchTimer);
+  state.searchTimer = setTimeout(fn, delay);
+}
+
+/* ------------------------------------------------------------------ auth */
+
+function showLogin() {
+  stopEvents();
+  if (state.listenerTimer) {
+    clearTimeout(state.listenerTimer);
+    state.listenerTimer = null;
+  }
+  state.user = null;
+  $('app-view').classList.add('hidden');
+  $('app-view').classList.remove('flex');
+  $('login-view').classList.remove('hidden');
+  $('login-view').classList.add('grid');
+  $('login-error').textContent = '';
+  $('password').value = '';
+}
+
+function showApp() {
+  $('login-view').classList.add('hidden');
+  $('login-view').classList.remove('grid');
+  $('app-view').classList.remove('hidden');
+  $('app-view').classList.add('flex');
+}
+
+async function doLogin(event) {
+  event.preventDefault();
+  const submit = $('login-submit');
+  submit.disabled = true;
+  $('login-error').textContent = '';
+
+  try {
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: $('username').value, password: $('password').value }),
+    });
+    if (!response.ok) {
+      $('login-error').textContent = await errorText(response);
+      return;
+    }
+    const body = await response.json();
+    state.user = body.user;
+    $('admin-user').textContent = body.user;
+    $('password').value = '';
+    showApp();
+    startEvents();
+    route();
+  } catch (_) {
+    $('login-error').textContent = 'Could not reach the server.';
+  } finally {
+    submit.disabled = false;
+  }
+}
+
+async function doLogout() {
+  try {
+    await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+  } catch (_) {}
+  location.href = '/';
+}
+
+/* ------------------------------------------------------------------ live */
+
+function startEvents() {
+  if (state.events) return;
+  $('live-dot').className = 'h-2 w-2 shrink-0 rounded-full bg-amber-500';
+  const events = new EventSource('/admin/events');
+  state.events = events;
+  events.onopen = () => {
+    $('live-dot').className = 'h-2 w-2 shrink-0 rounded-full bg-emerald-500';
+  };
+  events.onmessage = (event) => {
+    try {
+      onStatus(JSON.parse(event.data));
+    } catch (_) {}
+  };
+  events.onerror = async () => {
+    $('live-dot').className = 'h-2 w-2 shrink-0 rounded-full bg-amber-500';
+    try {
+      const me = await fetch('/api/me', { credentials: 'same-origin' });
+      if (!me.ok) showLogin();
+    } catch (_) {}
+  };
+}
+
+function stopEvents() {
+  if (!state.events) return;
+  state.events.close();
+  state.events = null;
+  $('live-dot').className = 'h-2 w-2 shrink-0 rounded-full bg-neutral-400';
+}
+
+function onStatus(status) {
+  const now = status.now;
+  $('live-now').textContent = now
+    ? (now.artist ? now.artist + ' \u2013 ' + now.title : now.title)
+    : 'Nothing playing';
+  $('live-listeners').textContent = plural(status.listeners, 'listener', 'listeners');
+
+  $('ov-now').textContent = now ? now.title : '\u2014';
+  $('ov-artist').textContent = now ? now.artist : '';
+  $('ov-listeners').textContent = status.listeners;
+  $('ov-queue').textContent = status.queue_total;
+  renderOverviewQueue(status.queue || []);
+  renderListeners(status.listener_list || []);
+
+  const nowKey = now ? now.file : '';
+  const queueTotal = status.queue_total || 0;
+  if (state.lastNow !== nowKey || state.lastQueueTotal !== queueTotal) {
+    state.lastNow = nowKey;
+    state.lastQueueTotal = queueTotal;
+    if (state.route === 'queue') loadQueue();
+    if (state.route === 'overview') loadLibraryTotal();
+  }
+}
+
+function renderOverviewQueue(queue) {
+  const list = $('ov-queue-list');
+  list.replaceChildren();
+  $('ov-queue-empty').hidden = queue.length > 0;
+
+  for (const track of queue.slice(0, 10)) {
+    const li = document.createElement('li');
+    li.className = 'flex items-start justify-between gap-4 py-2.5';
+
+    const left = document.createElement('div');
+    left.className = 'min-w-0';
+    const title = document.createElement('p');
+    title.className = 'truncate text-sm font-medium';
+    title.textContent = track.title || track.file;
+    title.title = track.file || title.textContent;
+    const artist = document.createElement('p');
+    artist.className = 'truncate text-xs text-neutral-500';
+    artist.textContent = track.artist || '';
+    left.append(title, artist);
+
+    const format = document.createElement('span');
+    format.className = 'shrink-0 pt-0.5 font-mono text-[11px] text-neutral-400';
+    format.textContent = track.format || '';
+
+    li.append(left, format);
+    list.append(li);
+  }
+}
+
+/* --------------------------------------------------------------- listeners */
+
+function renderListeners(list) {
+  state.listeners = list;
+  $('listeners-total').textContent = plural(list.length, 'listener', 'listeners');
+  $('listeners-empty').hidden = list.length > 0;
+
+  const signature = list
+    .map((l) => [l.id, l.addr, l.user_agent, l.since].join('\u0001'))
+    .join('\u0002');
+  if (signature !== state.listenerSignature) {
+    state.listenerSignature = signature;
+    const body = $('listeners');
+    body.replaceChildren();
+    for (const listener of list) body.append(listenerRow(listener));
+  }
+  tickListenerClock();
+}
+
+function listenerRow(listener) {
+  const tr = document.createElement('tr');
+  tr.className = 'align-top';
+
+  const agentCell = document.createElement('td');
+  agentCell.className = 'max-w-[24rem] px-4 py-3';
+  const agent = document.createElement('p');
+  agent.className = 'break-all text-xs';
+  agent.textContent = listener.user_agent || 'Unknown client';
+  agent.title = listener.user_agent || '';
+  const id = document.createElement('p');
+  id.className = 'mt-0.5 font-mono text-[11px] text-neutral-400';
+  id.textContent = 'connection #' + listener.id;
+  agentCell.append(agent, id);
+
+  const addrCell = document.createElement('td');
+  addrCell.className = 'whitespace-nowrap px-4 py-3 font-mono text-xs';
+  addrCell.textContent = listener.addr || 'unknown';
+
+  const connectedCell = document.createElement('td');
+  connectedCell.className = 'whitespace-nowrap px-4 py-3 text-xs text-neutral-500';
+  const elapsed = document.createElement('time');
+  elapsed.dataset.since = String(listener.since);
+  elapsed.dateTime = new Date(listener.since).toISOString();
+  elapsed.title = new Date(listener.since).toLocaleString();
+  connectedCell.append(elapsed);
+
+  const actionCell = document.createElement('td');
+  actionCell.className = 'whitespace-nowrap px-4 py-3 text-right';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'rounded-lg border border-red-300 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950';
+  button.textContent = 'Disconnect';
+  button.addEventListener('click', () => disconnectListener(listener.id, button));
+  actionCell.append(button);
+
+  tr.append(agentCell, addrCell, connectedCell, actionCell);
+  return tr;
+}
+
+function formatDuration(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  if (hours) return hours + 'h ' + minutes + 'm ' + seconds + 's';
+  if (minutes) return minutes + 'm ' + seconds + 's';
+  return seconds + 's';
+}
+
+function tickListenerClock() {
+  const now = Date.now();
+  document.querySelectorAll('#listeners [data-since]').forEach((el) => {
+    el.textContent = formatDuration(now - Number(el.dataset.since));
+  });
+}
+
+/* A local display clock, not a network poll: connection details still arrive
+   only from the SSE status stream. */
+function scheduleListenerClock() {
+  if (state.listenerTimer) clearTimeout(state.listenerTimer);
+  state.listenerTimer = null;
+  if (state.route !== 'listeners') return;
+  state.listenerTimer = setTimeout(() => {
+    tickListenerClock();
+    scheduleListenerClock();
+  }, 1000);
+}
+
+async function disconnectListener(id, button) {
+  button.disabled = true;
+  $('listeners-msg').textContent = '';
+  try {
+    const response = await api('/api/listeners/disconnect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    if (!response.ok && response.status !== 404) {
+      $('listeners-msg').textContent = await errorText(response);
+      button.disabled = false;
+    }
+  } catch (_) {
+    $('listeners-msg').textContent = 'Could not reach the server.';
+    button.disabled = false;
+  }
+}
+
+/* ----------------------------------------------------------------- route */
+
+function currentRoute() {
+  const path = location.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/admin/files') return 'files';
+  if (path === '/admin/queue') return 'queue';
+  if (path === '/admin/listeners') return 'listeners';
+  if (path === '/admin/settings') return 'settings';
+  return 'overview';
+}
+
+function route() {
+  if (!state.user) return;
+  const route = currentRoute();
+  state.route = route;
+
+  if (state.listenerTimer) {
+    clearTimeout(state.listenerTimer);
+    state.listenerTimer = null;
+  }
+
+  for (const name of ['overview', 'files', 'queue', 'listeners', 'settings']) {
+    $('view-' + name).classList.toggle('hidden', name !== route);
+  }
+
+  document.querySelectorAll('[data-nav]').forEach((link) => {
+    const active = link.dataset.nav === route;
+    link.classList.toggle('bg-neutral-100', active);
+    link.classList.toggle('font-medium', active);
+    link.classList.toggle('dark:bg-neutral-800', active);
+    link.classList.toggle('text-neutral-600', !active);
+    link.classList.toggle('dark:text-neutral-300', !active);
+    link.classList.toggle('text-neutral-900', active);
+    link.classList.toggle('dark:text-neutral-100', active);
+  });
+
+  if (route === 'files') {
+    $('page-title').textContent = 'Files';
+    $('page-subtitle').textContent = 'Search, paginate, upload, download, rename, and delete media.';
+    readFilesUrl();
+    loadFiles();
+  } else if (route === 'queue') {
+    $('page-title').textContent = 'Queue';
+    $('page-subtitle').textContent = 'Upcoming tracks in the current playlist.';
+    readQueueUrl();
+    loadQueue();
+  } else if (route === 'listeners') {
+    $('page-title').textContent = 'Listeners';
+    $('page-subtitle').textContent = 'Connections open right now. Click Disconnect to end one.';
+    renderListeners(state.listeners);
+    scheduleListenerClock();
+  } else if (route === 'settings') {
+    $('page-title').textContent = 'Settings';
+    $('page-subtitle').textContent = 'Public stream and HLS endpoints.';
+    loadSettings();
+  } else {
+    $('page-title').textContent = 'Overview';
+    $('page-subtitle').textContent = 'Station status at a glance.';
+    loadOverview();
+  }
+}
+
+/* ----------------------------------------------------------------- files */
+
+function readFilesUrl() {
+  const params = new URLSearchParams(location.search);
+  state.files.q = params.get('q') || '';
+  state.files.kind = ['all', 'music', 'jingle'].includes(params.get('kind'))
+    ? params.get('kind')
+    : 'all';
+  state.files.page = Math.max(1, parseInt(params.get('page') || '1', 10) || 1);
+  state.files.per = [25, 50, 100, 200].includes(parseInt(params.get('per') || '50', 10))
+    ? parseInt(params.get('per') || '50', 10)
+    : 50;
+
+  $('files-search').value = state.files.q;
+  $('files-kind').value = state.files.kind;
+  $('files-per').value = String(state.files.per);
+}
+
+function writeFilesUrl() {
+  const params = new URLSearchParams();
+  if (state.files.q) params.set('q', state.files.q);
+  if (state.files.kind !== 'all') params.set('kind', state.files.kind);
+  if (state.files.page > 1) params.set('page', String(state.files.page));
+  if (state.files.per !== 50) params.set('per', String(state.files.per));
+  const query = params.toString();
+  history.replaceState(null, '', '/admin/files' + (query ? '?' + query : ''));
+}
+
+async function loadFiles() {
+  if (!state.user || state.route !== 'files') return;
+  const params = new URLSearchParams({
+    q: state.files.q,
+    kind: state.files.kind,
+    page: String(state.files.page),
+    per_page: String(state.files.per),
+  });
+
+  try {
+    const response = await api('/api/files?' + params.toString());
+    if (state.route !== 'files') return;
+    if (!response.ok) {
+      $('files-msg').textContent = await errorText(response);
+      return;
+    }
+    const body = await response.json();
+    if (state.route !== 'files') return;
+    state.files.total = body.total;
+    state.files.pages = body.pages;
+    state.files.page = body.page;
+    writeFilesUrl();
+    renderFiles(body.files || []);
+  } catch (_) {
+    $('files-msg').textContent = 'Could not load the file list.';
+  }
+}
+
+function renderFiles(files) {
+  const list = $('files');
+  list.replaceChildren();
+  $('files-empty').hidden = files.length > 0;
+
+  for (const file of files) {
+    const li = document.createElement('li');
+    li.className = 'flex items-center justify-between gap-3 px-4 py-2.5';
+
+    const left = document.createElement('a');
+    left.className = 'min-w-0';
+    left.href = '/api/download?path=' + encodeURIComponent(file.path);
+    left.download = file.name || '';
+    left.title = 'Download ' + file.path;
+    const name = document.createElement('p');
+    name.className = 'truncate font-mono text-xs hover:underline';
+    name.textContent = file.path;
+    const meta = document.createElement('p');
+    meta.className = 'mt-0.5 text-[11px] text-neutral-500';
+    meta.textContent = humanSize(file.size) + (file.kind === 'jingle' ? ' \u00b7 jingle' : '');
+    left.append(name, meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'flex shrink-0 items-center gap-1';
+
+    const rename = document.createElement('button');
+    rename.type = 'button';
+    rename.className = 'rounded-md px-2 py-1 text-xs text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800';
+    rename.textContent = 'Rename';
+    rename.onclick = () => renameFile(file);
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40';
+    remove.textContent = 'Delete';
+    remove.onclick = () => deleteFile(file.path);
+
+    actions.append(rename, remove);
+    li.append(left, actions);
+    list.append(li);
+  }
+
+  $('files-total').textContent = plural(state.files.total, 'file', 'files');
+  $('files-page').textContent = 'Page ' + state.files.page + ' of ' + state.files.pages;
+  $('files-prev').disabled = state.files.page <= 1;
+  $('files-next').disabled = state.files.page >= state.files.pages;
+}
+
+async function renameFile(file) {
+  const name = prompt('Rename ' + file.path, file.name);
+  if (name === null) return;
+  const trimmed = name.trim();
+  if (!trimmed || trimmed === file.name) return;
+
+  $('files-msg').textContent = '';
+  try {
+    const response = await api('/api/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: file.path, name: trimmed }),
+    });
+    if (!response.ok) {
+      $('files-msg').textContent = await errorText(response);
+      return;
+    }
+    const body = await response.json();
+    $('files-msg').textContent = 'Renamed ' + file.path + ' to ' + body.path;
+    loadFiles();
+    if (state.route === 'queue') loadQueue();
+  } catch (_) {
+    $('files-msg').textContent = 'Could not rename the file.';
+  }
+}
+
+async function deleteFile(path) {
+  if (!confirm('Delete ' + path + '?')) return;
+  $('files-msg').textContent = '';
+  try {
+    const response = await api('/api/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path }),
+    });
+    if (!response.ok) {
+      $('files-msg').textContent = await errorText(response);
+      return;
+    }
+    $('files-msg').textContent = 'Deleted ' + path;
+    if (state.files.page > 1 && state.files.total % state.files.per === 1) {
+      state.files.page -= 1;
+    }
+    loadFiles();
+    loadLibraryTotal();
+  } catch (_) {
+    $('files-msg').textContent = 'Could not delete the file.';
+  }
+}
+
+async function uploadFile(file) {
+  const form = new FormData();
+  form.append('target', $('upload-target').value);
+  form.append('file', file, file.name);
+
+  $('files-msg').textContent = 'Uploading ' + file.name + '\u2026';
+  try {
+    const response = await api('/api/upload', { method: 'POST', body: form });
+    if (!response.ok) {
+      $('files-msg').textContent = await errorText(response);
+      return;
+    }
+    const body = await response.json();
+    $('files-msg').textContent = (body.overwritten ? 'Replaced ' : 'Uploaded ') + file.name;
+    loadFiles();
+    loadLibraryTotal();
+  } catch (_) {
+    $('files-msg').textContent = 'Could not upload the file.';
+  }
+}
+
+/* ----------------------------------------------------------------- queue */
+
+function readQueueUrl() {
+  const params = new URLSearchParams(location.search);
+  state.queue.q = params.get('q') || '';
+  state.queue.page = Math.max(1, parseInt(params.get('page') || '1', 10) || 1);
+  state.queue.per = [25, 50, 100, 200].includes(parseInt(params.get('per') || '25', 10))
+    ? parseInt(params.get('per') || '25', 10)
+    : 25;
+
+  $('queue-search').value = state.queue.q;
+  $('queue-per').value = String(state.queue.per);
+}
+
+function writeQueueUrl() {
+  const params = new URLSearchParams();
+  if (state.queue.q) params.set('q', state.queue.q);
+  if (state.queue.page > 1) params.set('page', String(state.queue.page));
+  if (state.queue.per !== 25) params.set('per', String(state.queue.per));
+  const query = params.toString();
+  history.replaceState(null, '', '/admin/queue' + (query ? '?' + query : ''));
+}
+
+async function loadQueue() {
+  if (!state.user || state.route !== 'queue') return;
+  const params = new URLSearchParams({
+    q: state.queue.q,
+    page: String(state.queue.page),
+    per_page: String(state.queue.per),
+  });
+
+  try {
+    const response = await api('/api/queue?' + params.toString());
+    if (state.route !== 'queue') return;
+    if (!response.ok) return;
+    const body = await response.json();
+    if (state.route !== 'queue') return;
+    state.queue.total = body.total;
+    state.queue.pages = body.pages;
+    state.queue.page = body.page;
+    writeQueueUrl();
+    renderQueue(body.queue || []);
+  } catch (_) {}
+}
+
+function renderQueue(queue) {
+  const list = $('queue');
+  list.replaceChildren();
+  $('queue-empty').hidden = queue.length > 0;
+
+  for (let i = 0; i < queue.length; i += 1) {
+    const track = queue[i];
+    const li = document.createElement('li');
+    li.className = 'flex items-start gap-4 px-4 py-3';
+
+    const position = document.createElement('span');
+    position.className = 'w-8 shrink-0 pt-0.5 text-right font-mono text-xs text-neutral-400';
+    position.textContent = String(track.position);
+
+    const left = document.createElement('div');
+    left.className = 'min-w-0 flex-1';
+    const title = document.createElement('p');
+    title.className = 'truncate text-sm font-medium';
+    title.textContent = track.title || track.file;
+    title.title = track.file || title.textContent;
+    const artist = document.createElement('p');
+    artist.className = 'truncate text-xs text-neutral-500';
+    artist.textContent = track.artist || track.file;
+    left.append(title, artist);
+
+    const format = document.createElement('span');
+    format.className = 'shrink-0 pt-0.5 font-mono text-[11px] text-neutral-400';
+    format.textContent = track.format || '';
+
+    li.append(position, left, format);
+    list.append(li);
+  }
+
+  $('queue-total').textContent = plural(state.queue.total, 'track', 'tracks');
+  $('queue-page').textContent = 'Page ' + state.queue.page + ' of ' + state.queue.pages;
+  $('queue-prev').disabled = state.queue.page <= 1;
+  $('queue-next').disabled = state.queue.page >= state.queue.pages;
+}
+
+/* -------------------------------------------------------------- overview */
+
+async function loadOverview() {
+  if (!state.user) return;
+  try {
+    const response = await api('/api/status');
+    if (response.ok) onStatus(await response.json());
+  } catch (_) {}
+  loadLibraryTotal();
+}
+
+async function loadLibraryTotal() {
+  if (!state.user) return;
+  try {
+    const response = await api('/api/files?per_page=1');
+    if (!response.ok) return;
+    const body = await response.json();
+    $('ov-files').textContent = plural(body.total, 'file', 'files');
+  } catch (_) {}
+}
+
+/* ---------------------------------------------------------------- settings */
+
+async function loadSettings() {
+  if (!state.user) return;
+  $('settings-msg').textContent = '';
+  try {
+    const response = await api('/api/settings');
+    if (!response.ok) {
+      $('settings-msg').textContent = await errorText(response);
+      return;
+    }
+    const body = await response.json();
+    $('settings-stream').value = body.stream_path;
+    $('settings-playlist').value = body.playlist_path;
+    $('settings-hls').checked = body.hls_enabled;
+  } catch (_) {
+    $('settings-msg').textContent = 'Could not load settings.';
+  }
+}
+
+async function saveSettings(event) {
+  event.preventDefault();
+  const submit = $('settings-save');
+  submit.disabled = true;
+  $('settings-msg').textContent = 'Saving...';
+  try {
+    const response = await api('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        stream_path: $('settings-stream').value.trim(),
+        playlist_path: $('settings-playlist').value.trim(),
+        hls_enabled: $('settings-hls').checked,
+      }),
+    });
+    if (!response.ok) {
+      $('settings-msg').textContent = await errorText(response);
+      return;
+    }
+    const body = await response.json();
+    $('settings-stream').value = body.stream_path;
+    $('settings-playlist').value = body.playlist_path;
+    $('settings-hls').checked = body.hls_enabled;
+    $('settings-msg').textContent = 'Saved. New connections use these endpoints.';
+  } catch (_) {
+    $('settings-msg').textContent = 'Could not reach the server.';
+  } finally {
+    submit.disabled = false;
+  }
+}
+
+/* ------------------------------------------------------------------ wire */
+
+$('login-form').addEventListener('submit', doLogin);
+$('logout').addEventListener('click', doLogout);
+$('settings-form').addEventListener('submit', saveSettings);
+
+document.querySelectorAll('[data-nav]').forEach((link) => {
+  link.addEventListener('click', (event) => {
+    event.preventDefault();
+    history.pushState(null, '', link.getAttribute('href'));
+    route();
+  });
+});
+
+window.addEventListener('popstate', () => {
+  if (state.user) route();
+});
+
+$('files-search').addEventListener('input', (event) => {
+  state.files.q = event.target.value;
+  state.files.page = 1;
+  debounce(loadFiles, 300);
+});
+$('files-kind').addEventListener('change', (event) => {
+  state.files.kind = event.target.value;
+  state.files.page = 1;
+  loadFiles();
+});
+$('files-per').addEventListener('change', (event) => {
+  state.files.per = parseInt(event.target.value, 10);
+  state.files.page = 1;
+  loadFiles();
+});
+$('files-prev').addEventListener('click', () => {
+  if (state.files.page > 1) {
+    state.files.page -= 1;
+    loadFiles();
+  }
+});
+$('files-next').addEventListener('click', () => {
+  if (state.files.page < state.files.pages) {
+    state.files.page += 1;
+    loadFiles();
+  }
+});
+$('upload').addEventListener('change', (event) => {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  if (file) uploadFile(file);
+});
+
+$('queue-search').addEventListener('input', (event) => {
+  state.queue.q = event.target.value;
+  state.queue.page = 1;
+  debounce(loadQueue, 300);
+});
+$('queue-per').addEventListener('change', (event) => {
+  state.queue.per = parseInt(event.target.value, 10);
+  state.queue.page = 1;
+  loadQueue();
+});
+$('queue-prev').addEventListener('click', () => {
+  if (state.queue.page > 1) {
+    state.queue.page -= 1;
+    loadQueue();
+  }
+});
+$('queue-next').addEventListener('click', () => {
+  if (state.queue.page < state.queue.pages) {
+    state.queue.page += 1;
+    loadQueue();
+  }
+});
+$('queue-refresh').addEventListener('click', loadQueue);
+$('files-refresh').addEventListener('click', loadFiles);
+
+/* ------------------------------------------------------------------ boot */
+
+async function boot() {
+  try {
+    const response = await api('/api/me');
+    if (!response.ok) {
+      showLogin();
+      return;
+    }
+    const body = await response.json();
+    state.user = body.user;
+    $('admin-user').textContent = body.user;
+    showApp();
+    startEvents();
+    route();
+  } catch (_) {
+    showLogin();
+  }
+}
+
+boot();
+</script>
+</body>
+</html>

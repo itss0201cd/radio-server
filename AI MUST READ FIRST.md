@@ -1,0 +1,6 @@
+* Never use unsafe Rust code unless there is no safe alternative, or unless the unsafe code cannot be exploited.
+* Resolve all project warnings; never leave them unresolved.
+* Use tests to verify that your changes have not broken anything, including code you wrote. Do not run excessive or irrelevant tests. For example, do not test the web server if you have not changed the web server.
+* Use code comments only when the code is complex: do not restate what the code does, since any developer can see that from the code itself. Instead, explain the logic or reasoning behind the code that may not be obvious. Do not write obvious comments, such as `1 + 1 = 2`, a comment saying that a variable named `RunTests` runs tests, or `// The player and this stream are public; no session is needed.`.
+* Always look for optimizations. Small improvements add up over time. If you have an idea, implement it, benchmark it, and check whether your hunch was correct. If it was correct and all tests pass, use it; otherwise, move on to the next idea.
+* If you do not understand something, do not guess. Tell the human that you do not understand and ask them to clarify. Do not waste time trying to figure out something unclear; ask the human immediately.

@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radio</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body {
+    height: 100%;
+  }
+  @supports (height: 100dvh) {
+    body {
+      height: 100dvh;
+    }
+  }
+
+  .volume {
+    --fill: 100%;
+    margin: 0;
+    height: 1rem;
+    background: transparent;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .volume::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 9999px;
+    background: linear-gradient(to right, #10b981 var(--fill), #e5e5e5 0);
+  }
+  .volume::-webkit-slider-thumb {
+    width: 12px;
+    height: 12px;
+    margin-top: -4px;
+    border-radius: 9999px;
+    background: #171717;
+    transition: transform 120ms ease;
+    -webkit-appearance: none;
+  }
+  .volume:hover::-webkit-slider-thumb {
+    transform: scale(1.15);
+  }
+  .volume:focus-visible {
+    outline: 2px solid #10b981;
+    outline-offset: 4px;
+    border-radius: 9999px;
+  }
+  .volume::-moz-range-track {
+    height: 4px;
+    border-radius: 9999px;
+    background: #e5e5e5;
+  }
+  .volume::-moz-range-progress {
+    height: 4px;
+    border-radius: 9999px;
+    background: #10b981;
+  }
+  .volume::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 0;
+    border-radius: 9999px;
+    background: #171717;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .volume::-webkit-slider-runnable-track {
+      background: linear-gradient(to right, #10b981 var(--fill), #404040 0);
+    }
+    .volume::-webkit-slider-thumb {
+      background: #fafafa;
+    }
+    .volume::-moz-range-track {
+      background: #404040;
+    }
+    .volume::-moz-range-thumb {
+      background: #fafafa;
+    }
+  }
+</style>
+</head>
+<body class="flex flex-col overflow-hidden bg-neutral-50 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100">
+
+<header class="flex shrink-0 items-center justify-between gap-4 px-5 py-4 sm:px-8 sm:py-5">
+  <div class="flex min-w-0 items-center gap-3">
+    <a href="/" class="text-base font-semibold tracking-tight">Radio</a>
+    <span class="h-4 w-px bg-neutral-200 dark:bg-neutral-800"></span>
+    <span class="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+      <span id="dot" class="h-1.5 w-1.5 rounded-full bg-neutral-400"></span>
+      <span id="conn">connecting</span>
+      <span id="listeners">0 listeners</span>
+    </span>
+  </div>
+  <a id="login-btn" href="/admin"
+    class="shrink-0 rounded-full border border-neutral-300 px-4 py-1.5 text-sm font-medium transition hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900">
+    Log in
+  </a>
+</header>
+
+<main class="flex min-h-0 flex-1 px-4 pb-3 sm:px-6 sm:pb-4 lg:px-8">
+  <section class="relative flex min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-b from-white to-neutral-50 dark:border-neutral-800 dark:from-neutral-900 dark:to-neutral-950">
+    <div class="relative min-h-0 flex-1">
+      <canvas id="spectrum" role="img" aria-label="Frequency spectrum from 20 hertz to 20 kilohertz"
+        class="absolute inset-0 block h-full w-full"></canvas>
+    </div>
+  </section>
+</main>
+
+<footer class="shrink-0 border-t border-neutral-200 bg-white/80 px-4 py-3 backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/60 sm:px-6 lg:px-8">
+  <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-6">
+
+    <div class="flex min-w-0 items-center gap-3">
+      <div class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 text-white shadow-sm" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+          <path d="M9 18V5l12-2v13"/>
+          <circle cx="6" cy="18" r="3"/>
+          <circle cx="18" cy="16" r="3"/>
+        </svg>
+      </div>
+      <div class="min-w-0">
+        <p id="title" class="truncate text-sm font-semibold">&mdash;</p>
+        <p id="artist" class="truncate text-xs text-neutral-500 dark:text-neutral-400"></p>
+        <p class="mt-0.5 hidden min-w-0 items-center gap-2 text-[10px] text-neutral-400 dark:text-neutral-500 sm:flex">
+          <span id="file" class="truncate font-mono"></span>
+          <span id="format" class="shrink-0 font-mono uppercase tracking-wider"></span>
+        </p>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-center">
+      <button id="play" type="button" aria-label="Play the stream" title="Play"
+        class="grid h-14 w-14 place-items-center rounded-full bg-neutral-900 text-white shadow-lg shadow-neutral-900/10 transition hover:scale-105 hover:bg-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-50 active:scale-95 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300 dark:focus-visible:ring-offset-neutral-900">
+        <svg id="icon-play" viewBox="0 0 24 24" fill="currentColor" class="ml-0.5 h-6 w-6" aria-hidden="true">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <svg id="icon-pause" viewBox="0 0 24 24" fill="currentColor" class="hidden h-6 w-6" aria-hidden="true">
+          <path d="M7 5h4v14H7zM13 5h4v14h-4z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="flex min-w-0 items-center justify-end gap-2">
+      <button id="spectrum-toggle" type="button" aria-label="Hide spectrum" aria-pressed="true" title="Hide spectrum"
+        class="grid h-9 w-9 shrink-0 place-items-center rounded-full text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-5 w-5" aria-hidden="true">
+          <path d="M4 14v4"/>
+          <path d="M8 10v8"/>
+          <path d="M12 6v12"/>
+          <path d="M16 9v9"/>
+          <path d="M20 13v5"/>
+        </svg>
+      </button>
+      <button id="mute" type="button" aria-label="Mute" title="Mute"
+        class="grid h-9 w-9 shrink-0 place-items-center rounded-full text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100">
+        <svg id="icon-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
+          <path d="M11 5 6 9H2v6h4l5 4V5z"/>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+        </svg>
+        <svg id="icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden h-5 w-5" aria-hidden="true">
+          <path d="M11 5 6 9H2v6h4l5 4V5z"/>
+          <path d="m22 9-6 6"/>
+          <path d="m16 9 6 6"/>
+        </svg>
+      </button>
+      <input id="volume" type="range" min="0" max="1" step="0.01" value="1"
+        aria-label="Volume" class="volume w-16 sm:w-24 lg:w-28">
+    </div>
+
+  </div>
+</footer>
+
+<audio id="audio" preload="none"></audio>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+function render(status) {
+  const now = status.now;
+  $('listeners').textContent = status.listeners + (status.listeners === 1 ? ' listener' : ' listeners');
+  $('title').textContent = now ? now.title : 'Nothing playing';
+  $('artist').textContent = now ? now.artist : 'Waiting for the next track';
+  $('file').textContent = now ? now.file : '';
+  $('format').textContent = now ? now.format : '';
+  document.title = now ? (now.artist ? now.artist + ' \u2013 ' + now.title : now.title) : 'Radio';
+}
+
+function setConn(up) {
+  const dot = $('dot');
+  dot.classList.remove('bg-neutral-400');
+  dot.classList.toggle('bg-emerald-500', up);
+  dot.classList.toggle('bg-amber-500', !up);
+  dot.classList.toggle('animate-pulse', !up);
+
+  const conn = $('conn');
+  conn.textContent = 'reconnecting';
+  conn.classList.toggle('hidden', up);
+}
+
+const events = new EventSource('/events');
+events.onmessage = (event) => {
+  try {
+    render(JSON.parse(event.data));
+  } catch (_) {}
+};
+events.onopen = () => setConn(true);
+events.onerror = () => setConn(false);
+
+fetch('/api/me', { credentials: 'same-origin' })
+  .then((response) => {
+    if (response.ok) $('login-btn').textContent = 'Admin';
+  })
+  .catch(() => {});
+
+const audio = $('audio');
+const playBtn = $('play');
+const volumeInput = $('volume');
+const volumeIcon = $('icon-volume');
+const mutedIcon = $('icon-muted');
+
+let audioCtx = null;
+let analyser = null;
+let gain = null;
+let volumeValue = 1;
+let lastVolume = 1;
+
+function setPlaying(on) {
+  $('icon-play').classList.toggle('hidden', on);
+  $('icon-pause').classList.toggle('hidden', !on);
+  playBtn.setAttribute('aria-label', on ? 'Stop the stream' : 'Play the stream');
+  playBtn.title = on ? 'Stop' : 'Play';
+}
+
+function ensureGraph() {
+  if (audioCtx) return;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return;
+
+  try {
+    const ctx = new AudioCtx();
+    const node = ctx.createAnalyser();
+    node.fftSize = 8192;
+    node.minDecibels = -90;
+    node.maxDecibels = 0;
+    node.smoothingTimeConstant = 0.8;
+
+    const out = ctx.createGain();
+    out.gain.value = 0;
+
+    const source = ctx.createMediaElementSource(audio);
+    source.connect(node);
+    node.connect(out);
+    out.connect(ctx.destination);
+
+    audioCtx = ctx;
+    analyser = node;
+    gain = out;
+    audio.volume = 1;
+    initWasm();
+  } catch (_) {}
+}
+
+function applyVolume() {
+  if (gain) {
+    audio.volume = 1;
+    gain.gain.value = volumeValue;
+  } else {
+    audio.volume = volumeValue;
+  }
+  volumeInput.value = String(volumeValue);
+  volumeInput.style.setProperty('--fill', (volumeValue * 100).toFixed(1) + '%');
+  volumeIcon.classList.toggle('hidden', volumeValue === 0);
+  mutedIcon.classList.toggle('hidden', volumeValue > 0);
+  $('mute').setAttribute('aria-label', volumeValue === 0 ? 'Unmute' : 'Mute');
+  $('mute').title = volumeValue === 0 ? 'Unmute' : 'Mute';
+}
+
+function setVolume(value) {
+  volumeValue = Math.min(1, Math.max(0, value));
+  if (volumeValue > 0) lastVolume = volumeValue;
+  applyVolume();
+}
+
+applyVolume();
+
+volumeInput.oninput = () => setVolume(parseFloat(volumeInput.value));
+$('mute').onclick = () => setVolume(volumeValue === 0 ? lastVolume : 0);
+
+function stop() {
+  audio.pause();
+  audio.removeAttribute('src');
+  audio.load();
+  setPlaying(false);
+}
+
+playBtn.onclick = () => {
+  if (!audio.paused) {
+    stop();
+    return;
+  }
+  ensureGraph();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  if (gain) {
+    const now = audioCtx.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(0, now);
+  }
+  audio.src = '__STREAM_PATH__';
+  audio.play().then(() => {
+    if (!gain) return;
+    const now = audioCtx.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(volumeValue, now + 0.05);
+  }).catch(() => setPlaying(false));
+};
+
+audio.onplay = () => setPlaying(true);
+audio.onpause = () => setPlaying(false);
+audio.onerror = () => stop();
+setPlaying(false);
+
+const canvas = $('spectrum');
+const surface = canvas.getContext('2d');
+const PAD = { left: 20, right: 20, top: 12, bottom: 26 };
+const MAJOR = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
+const MINOR = [30, 40, 60, 70, 80, 90, 300, 400, 600, 700, 800, 900, 3000, 4000, 6000, 7000, 8000, 9000];
+const SPAN = Math.log10(1000);
+const DISPLAY_SPAN_DB = 80;
+
+let dpr = 1;
+let viewW = 0;
+let viewH = 0;
+let lastIdleDraw = 0;
+
+let spectrumWasm = null;
+let wasmMemory = null;
+let wasmCols = 0;
+let fftView = null;
+let levelsView = null;
+let wasmInitKey = '';
+
+let fillGradient = null;
+let lineGradient = null;
+let gradientKey = '';
+
+const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+const gridLayer = document.createElement('canvas');
+let gridKey = '';
+
+const plotWidth = () => Math.max(0, viewW - PAD.left - PAD.right);
+const plotHeight = () => Math.max(0, viewH - PAD.top - PAD.bottom);
+const freqToX = (f, w) => Math.log10(f / 20) / SPAN * w;
+
+function fitCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width < 1 || rect.height < 1) return;
+
+  const nextDpr = Math.min(window.devicePixelRatio || 1, 2);
+  if (rect.width === viewW && rect.height === viewH && nextDpr === dpr) return;
+
+  dpr = nextDpr;
+  viewW = rect.width;
+  viewH = rect.height;
+  canvas.width = Math.round(viewW * dpr);
+  canvas.height = Math.round(viewH * dpr);
+  surface.setTransform(dpr, 0, 0, dpr, 0, 0);
+  gridKey = '';
+  initWasm();
+}
+
+function initWasm() {
+  if (!spectrumWasm) return;
+
+  const cols = Math.max(2, Math.min(8192, Math.ceil(plotWidth())));
+  const bins = Math.min(16384, analyser ? analyser.frequencyBinCount : 4096);
+  const rate = audioCtx ? audioCtx.sampleRate : 48000;
+  const key = cols + ':' + bins + ':' + rate;
+  if (key === wasmInitKey) return;
+  wasmInitKey = key;
+
+  const minDb = analyser ? analyser.minDecibels : -90;
+  const startBin = 20 / (rate / 2) * bins;
+  const ratio = Math.pow(1000, 1 / cols);
+  wasmCols = spectrumWasm.init(cols, bins, startBin, ratio, minDb, DISPLAY_SPAN_DB);
+  fftView = new Float32Array(wasmMemory.buffer, spectrumWasm.fft_ptr(), bins);
+  levelsView = new Float32Array(wasmMemory.buffer, spectrumWasm.levels_ptr(), wasmCols);
+}
+
+function ensureGradients(dark) {
+  const key = (dark ? 'd' : 'l') + ':' + viewW + ':' + viewH;
+  if (key === gradientKey) return;
+  gradientKey = key;
+
+  const base = PAD.top + plotHeight();
+  fillGradient = surface.createLinearGradient(0, PAD.top, 0, base);
+  fillGradient.addColorStop(0, dark ? 'rgba(45,212,191,0.30)' : 'rgba(16,185,129,0.20)');
+  fillGradient.addColorStop(1, 'rgba(34,211,238,0.01)');
+
+  lineGradient = surface.createLinearGradient(PAD.left, 0, PAD.left + plotWidth(), 0);
+  lineGradient.addColorStop(0, '#22d3ee');
+  lineGradient.addColorStop(1, '#34d399');
+}
+
+async function loadSpectrumWasm() {
+  try {
+    const response = await fetch('/spectrum.wasm');
+    if (!response.ok) return;
+    const { instance } = await WebAssembly.instantiate(await response.arrayBuffer(), {});
+    if (!instance.exports.memory) return;
+    spectrumWasm = instance.exports;
+    wasmMemory = spectrumWasm.memory;
+    initWasm();
+    startLoop();
+  } catch (_) {}
+}
+
+function buildGrid(dark) {
+  const key = viewW + ':' + viewH + ':' + dpr + ':' + (dark ? 'd' : 'l');
+  if (key === gridKey) return;
+  gridKey = key;
+
+  gridLayer.width = canvas.width;
+  gridLayer.height = canvas.height;
+  const g = gridLayer.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, viewW, viewH);
+
+  const w = plotWidth();
+  const h = plotHeight();
+  if (w < 2 || h < 2) return;
+
+  const faint = dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const strong = dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.08)';
+  g.lineWidth = 1;
+
+  g.strokeStyle = faint;
+  for (const f of MINOR) {
+    const x = Math.round(PAD.left + freqToX(f, w)) + 0.5;
+    g.beginPath();
+    g.moveTo(x, PAD.top);
+    g.lineTo(x, PAD.top + h);
+    g.stroke();
+  }
+
+  g.strokeStyle = strong;
+  for (const f of MAJOR) {
+    const x = Math.round(PAD.left + freqToX(f, w)) + 0.5;
+    g.beginPath();
+    g.moveTo(x, PAD.top);
+    g.lineTo(x, PAD.top + h);
+    g.stroke();
+  }
+
+  g.strokeStyle = faint;
+  for (let i = 1; i < 4; i++) {
+    const y = Math.round(PAD.top + h * i / 4) + 0.5;
+    g.beginPath();
+    g.moveTo(PAD.left, y);
+    g.lineTo(PAD.left + w, y);
+    g.stroke();
+  }
+
+  g.strokeStyle = strong;
+  g.beginPath();
+  g.moveTo(PAD.left, Math.round(PAD.top + h) + 0.5);
+  g.lineTo(PAD.left + w, Math.round(PAD.top + h) + 0.5);
+  g.stroke();
+
+  g.fillStyle = dark ? 'rgba(255,255,255,0.34)' : 'rgba(0,0,0,0.36)';
+  g.font = '10px ui-monospace, SFMono-Regular, Menlo, monospace';
+  g.textAlign = 'center';
+  g.textBaseline = 'top';
+  for (const f of MAJOR) {
+    const label = f >= 1000 ? f / 1000 + 'k' : String(f);
+    g.fillText(label, PAD.left + freqToX(f, w), PAD.top + h + 8);
+  }
+}
+
+function draw() {
+  if (viewW < 2 || viewH < 2 || !spectrumWasm || wasmCols === 0) return;
+
+  const dark = darkQuery.matches;
+  buildGrid(dark);
+  ensureGradients(dark);
+  surface.clearRect(0, 0, viewW, viewH);
+  surface.drawImage(gridLayer, 0, 0, viewW, viewH);
+
+  const h = plotHeight();
+  if (h < 2) return;
+
+  if (!audio.paused && analyser !== null) {
+    analyser.getFloatFrequencyData(fftView);
+    spectrumWasm.process(1);
+  } else {
+    spectrumWasm.process(0);
+  }
+
+  const n = wasmCols;
+  const base = PAD.top + h;
+
+  surface.beginPath();
+  surface.moveTo(PAD.left, base);
+  for (let i = 0; i < n; i++) surface.lineTo(PAD.left + i, base - levelsView[i] * h);
+  surface.lineTo(PAD.left + n - 1, base);
+  surface.closePath();
+  surface.fillStyle = fillGradient;
+  surface.fill();
+
+  let prevX = PAD.left;
+  let prevY = base - levelsView[0] * h;
+  surface.beginPath();
+  surface.moveTo(prevX, prevY);
+  for (let i = 1; i < n; i++) {
+    const x = PAD.left + i;
+    const y = base - levelsView[i] * h;
+    surface.quadraticCurveTo(prevX, prevY, (prevX + x) / 2, (prevY + y) / 2);
+    prevX = x;
+    prevY = y;
+  }
+  surface.lineTo(prevX, prevY);
+
+  surface.lineJoin = 'round';
+  surface.lineCap = 'round';
+  surface.strokeStyle = dark ? 'rgba(45,212,191,0.20)' : 'rgba(16,185,129,0.18)';
+  surface.lineWidth = 6;
+  surface.stroke();
+  surface.strokeStyle = lineGradient;
+  surface.lineWidth = 2;
+  surface.stroke();
+}
+
+let spectrumOn = true;
+let rafId = 0;
+
+function frame(now) {
+  rafId = 0;
+  if (document.hidden || !spectrumOn) return;
+
+  if (!audio.paused && analyser !== null) {
+    draw();
+  } else {
+    let decaying = false;
+    if (levelsView) {
+      for (let i = 0; i < wasmCols; i++) {
+        if (levelsView[i] > 0.001) {
+          decaying = true;
+          break;
+        }
+      }
+    }
+    if (decaying) {
+      draw();
+    } else if (now - lastIdleDraw > 500) {
+      lastIdleDraw = now;
+      draw();
+    }
+  }
+
+  rafId = requestAnimationFrame(frame);
+}
+
+function startLoop() {
+  if (!rafId && spectrumOn && !document.hidden) rafId = requestAnimationFrame(frame);
+}
+
+function stopLoop() {
+  if (rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = 0;
+  }
+}
+
+function setSpectrum(on) {
+  spectrumOn = on;
+  const button = $('spectrum-toggle');
+  button.setAttribute('aria-pressed', String(on));
+  button.setAttribute('aria-label', on ? 'Hide spectrum' : 'Show spectrum');
+  button.title = on ? 'Hide spectrum' : 'Show spectrum';
+  button.classList.toggle('opacity-40', !on);
+
+  if (on) {
+    startLoop();
+  } else {
+    stopLoop();
+    surface.clearRect(0, 0, viewW, viewH);
+  }
+}
+
+$('spectrum-toggle').onclick = () => setSpectrum(!spectrumOn);
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopLoop(); else startLoop();
+});
+
+fitCanvas();
+if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe(canvas.parentElement);
+window.addEventListener('resize', fitCanvas);
+startLoop();
+loadSpectrumWasm();
+</script>
+</body>
+</html>
